@@ -1,0 +1,248 @@
+/**
+ * Author: Rodney Erickson
+ * Date: 3/14/2022
+ * DNATally
+ * Description: Contains the coding tasks for DNATally homework
+ */
+import java.io.*;  
+import java.util.*;  // Allows Scanner
+
+
+public class DNATally{
+  //Constants
+  public static final int MIN = 5; //minimum number of codons to be a protein
+  public static final int PCTMASSOFCANDG = 30; //percentage of mass from C and G in order for a protein to be valid
+  public static final int NUCLEOPERCODON = 3; //number of nucleotides per codon
+  public static final double[] MASSES = {135.128, 111.103, 151.128, 125.107, 100.000}; //masses of a, c, g, t, and "-"
+  // main method
+  public static void main(String[] args) throws FileNotFoundException{
+    Scanner console = new Scanner(System.in);
+    logOfExecution(console);
+    System.out.print("Input file name? ");
+    String input = console.next();
+   
+    Scanner file = new Scanner(new File(input));
+    System.out.print("Output file name? ");
+    String output0 = console.next();
+    PrintStream output = new PrintStream (new File(output0)); // outputs file output.txt
+    printResults(file, output);
+    
+  }
+ /**
+ * This method prints the statements at the top and then calls the input method and
+ * calls the output method.
+ * @param Scanner console is the input scanner that asks for the inputs
+ */
+  public static void logOfExecution(Scanner console){
+    System.out.println("This program reports information about DNA\nnucleotide sequences that may encode proteins.");
+     
+  }
+   /**
+   * This method reads in the input file and print the results based
+   * on the given input
+   * @param Scanner file gives us the file we want to use
+   * @param PrintStream output is the printstream to the output
+   */
+  public static void printResults(Scanner file, PrintStream output){
+    double totalMass = 0.0;
+    while (file.hasNextLine()) {      
+      String line0 = file.nextLine();
+      Scanner lineScan = new Scanner(line0);
+      String line1 = file.nextLine().toUpperCase();
+      Scanner lineScan1 = new Scanner(line1);
+      output.println("Region Name: " + line0);
+      output.println("Nucleotides: " + line1.toUpperCase());
+      int[] arrayCount = count(line1);
+      output.println("Nuc. Counts: " + Arrays.toString(arrayCount));
+
+      
+      totalMass = dashes(line1);
+      double[] arrayMasses = new double[4];
+      masses(totalMass, arrayCount, MASSES, arrayMasses, 1, output);
+      line1 = removeDash(line1);
+      output.println("Codons List: " + Arrays.toString(codons(line1)));
+      double[] massPercent = masses(totalMass, arrayCount, MASSES, arrayMasses, 0, output);
+      if (!protein(line1, massPercent)) {
+          output.println("Is Protein?: NO");
+        } else {
+          output.println("Open reading frame codons: " + Arrays.toString(openCodon(line1)));
+          output.println("Is Protein?: YES");
+        }
+      output.println();
+    }
+  }
+  /**
+   * This method creates an array and counts the number of times nucleotides
+   * appear.
+   * @param line1 is the line of the nucleotide from the input file
+   * @return arrayCount returns the array created with the counts
+   */
+  public static int[] count(String line1){
+    int[] arrayCount = new int[4];
+    for (int i = 0; i <= line1.length() - 1; i++){
+      if (line1.charAt(i) == 'A'){
+        arrayCount[0]++;
+      }
+      if (line1.charAt(i) == 'C'){
+        arrayCount[1]++;
+      }
+      if (line1.charAt(i) == 'G'){
+        arrayCount[2]++;
+      }
+      if (line1.charAt(i) == 'T'){
+        arrayCount[3]++;
+      }
+    }
+    
+    return arrayCount;
+    
+  }
+   /**
+   * This method gives the percent of total mass of a, c, g, and t. It also prints the nucleotide
+   * mass percentages.
+   * @param double totalMass is the totalMass so far with the dashes included
+   * @param int[] arrayCount is the array with the count of each letter
+   * @param double[] MASSES is the constant of the mass of each letter
+   * @param int x decides whether I want the print statement to run or not
+   * @PrintStream output is the printstream to the output
+   * @return arrayMasses is the array with the mass percentage of each letter
+   */
+  public static double[] masses(double totalMass, int[] arrayCount, double[] MASSES, double[] arrayMasses, int x, PrintStream output){
+    
+    
+    for (int i = 0; i <= arrayCount.length - 1; i++){
+       arrayMasses[i] = arrayCount[i] * MASSES[i];
+    }
+    
+    for (int i = 0; i <= arrayMasses.length - 1; i++){ //to find total mass
+       totalMass += arrayMasses[i];
+
+    }
+
+
+    for (int i = 0; i <= arrayMasses.length - 1; i++){ //to find total mass
+      arrayMasses[i] = (arrayMasses[i] / totalMass) * 100.0;
+      arrayMasses[i] = Math.round(arrayMasses[i] * 10.0) / 10.0;
+    }
+    totalMass = Math.round(totalMass * 10.0) / 10.0;
+    if (x == 1){
+      output.printf("Total Mass%%: " + Arrays.toString(arrayMasses) +" of " + totalMass);
+      output.println();
+    }
+    System.out.println();
+    return arrayMasses;
+  }
+   /**
+   * This method gives the total mass of all the junk within the nucleotide
+   * @param line1 is the line of the nucleotide from the input file
+   * @return totalMass is the mass of the junk
+   */
+  public static double dashes(String line1){
+    double totalMass = 0.0;
+    for (int i = 0; i <= line1.length() - 1; i++){
+      if (line1.charAt(i) == '-'){
+        totalMass += 100.0;
+      }
+  }
+    return totalMass;
+  }
+     /**
+   * This method takes the codons from the nucleotide sequence and then prints them.
+   * @param line1 is the line of the nucleotide from the input file
+   * @return codons is the array of the codons
+   */
+  public static String[] codons(String line1){
+
+    String[] codons = new String[(line1.length() / NUCLEOPERCODON)];
+    for (int i = 0; i < (line1.length() / NUCLEOPERCODON); i++){
+       codons[i] = line1.substring(i*3, i*3 + 3);
+
+    }
+     
+    return codons;
+  }
+   /**
+   * This method takes out any dashes in the nucleotide sequence
+   * @param line1 is the line of the nucleotide from the input file
+   * @return String line1 is the sequence without any dashes
+   */
+  public static String removeDash(String line1){
+    line1 = line1.replaceAll("-", "");
+    return line1;
+  }
+   /**
+   * This method gives the index of the start codon and the stop codon. It also
+   * says the number of codons in it
+   * @param line1 is the line of the nucleotide from the input file
+   * @return pos is an array that says where the start and stop codon are
+   */
+  public static int[] helpReading(String line1){
+
+    String codon = "";
+    
+    int[] pos = new int[3];
+    for (int i = 0; i < line1.length() - (NUCLEOPERCODON - 1); i++) {
+      codon = line1.substring(i, i + NUCLEOPERCODON);
+      if (codon.equals("ATG")) {
+        pos[0] = i;
+        break;
+      }
+    }
+    if (pos[0] > 0) {
+      for (int i = pos[0] + NUCLEOPERCODON; i < line1.length() - (NUCLEOPERCODON - 1); i = i + NUCLEOPERCODON) {
+        codon = line1.substring(i, i + NUCLEOPERCODON);
+        if (codon.equals("TAG") || codon.equals("TAA") || codon.equals("TGA")) {
+          pos[1] = i + NUCLEOPERCODON;
+        }
+      }
+    }
+    if (pos[0] >= 0 && (pos[1] > 0 && pos[1] > pos[0])) {
+       int x = pos[0];
+       int y = pos[1];
+       pos[2] = (y - x) / NUCLEOPERCODON;
+    }
+    return pos;
+  }
+   /**
+   * This method takes the sequence and finds the start and stop codon to determine what codons
+   * are needed to be printed
+   * @param line1 is the line of the nucleotide from the input file
+   * @return codons is the array of the codons that ranges from the start to the stop codon
+   */
+  public static String[] openCodon(String line1) {
+    int[] pos = helpReading(line1);
+    String[] codons = new String[pos[2]];
+    if (codons.length > 0) {
+      String codon = "";
+      int x = 0;
+      for (int i = pos[0]; i < pos[1]; i = i + NUCLEOPERCODON) {
+        codon = line1.substring(i, i + NUCLEOPERCODON);
+        codons[x] = codon;
+        x++;
+      }
+    }
+    return codons;
+  }
+   /**
+   * This method checks whether the nucleotide sequence is a protein or not
+   * @param line1 is the line of the nucleotide from the input file
+   * @return false is when the sequence is not a protein
+   * @return true is when the
+   */
+  public static boolean protein(String line1, double[] massPercent) {
+    int[] pos = helpReading(line1);
+    if (pos[2] < MIN) {
+      return false;
+    }
+    if (massPercent[1] + massPercent[2] < PCTMASSOFCANDG) {
+      return false;
+    }
+    for (int i = 0; i < pos[0]; i++) {
+      String codon = line1.substring(i, i + 2);
+      if (codon.equals("CG")) {
+        return true;
+      }
+    }
+  return false;
+  }
+}
